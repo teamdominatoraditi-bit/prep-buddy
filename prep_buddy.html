@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Prep Buddy</title>
+<style>
+  :root{
+    --navy:#0E2841;
+    --navy-light:#16385A;
+    --sky:#0F9ED5;
+    --orange:#E97132;
+    --green:#4EA72E;
+    --paper:#F6F8FA;
+    --ink:#0E2841;
+    --muted:#5C7185;
+    --line:#DCE3EA;
+    --font: Calibri, "Aptos Display", "Segoe UI", -apple-system, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:var(--font);
+    background:var(--paper);
+    color:var(--ink);
+  }
+  .app{max-width:920px;margin:0 auto;padding:32px 20px 80px;}
+
+  .masthead{
+    background:var(--navy);
+    color:#fff;
+    border-radius:14px;
+    padding:26px 28px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+    margin-bottom:28px;
+  }
+  .masthead h1{margin:0;font-size:26px;letter-spacing:.2px;}
+  .masthead p{margin:4px 0 0;color:#B9CBDB;font-size:13.5px;}
+  .brand-dot{width:10px;height:10px;border-radius:50%;background:var(--sky);display:inline-block;margin-right:8px;box-shadow:0 0 0 4px rgba(15,158,213,.25);}
+
+  .memory-badge{
+    background:var(--navy-light);
+    border:1px solid #23507A;
+    border-radius:10px;
+    padding:10px 16px;
+    text-align:center;
+    min-width:150px;
+  }
+  .memory-badge .num{font-size:22px;font-weight:700;color:var(--sky);line-height:1;}
+  .memory-badge .lbl{font-size:11px;color:#9FB6CB;margin-top:4px;letter-spacing:.3px;text-transform:uppercase;}
+
+  .layout{display:grid;grid-template-columns:1fr 260px;gap:22px;align-items:start;}
+  @media (max-width:760px){.layout{grid-template-columns:1fr;}}
+
+  .stage{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:14px;
+    margin-bottom:18px;
+    overflow:hidden;
+    transition:opacity .25s ease;
+  }
+  .stage.locked{opacity:.45;pointer-events:none;}
+  .stage-head{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    padding:18px 22px;
+    border-bottom:1px solid var(--line);
+  }
+  .stage-num{
+    width:30px;height:30px;border-radius:50%;
+    background:var(--sky);color:#fff;font-weight:700;font-size:14px;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .stage.done .stage-num{background:var(--green);}
+  .stage-head h2{margin:0;font-size:16px;}
+  .stage-head span{display:block;font-size:12.5px;color:var(--muted);margin-top:2px;}
+  .stage-body{padding:20px 22px 22px;}
+
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:12px 0 6px;text-transform:uppercase;letter-spacing:.3px;}
+  label:first-child{margin-top:0;}
+  input[type=text], textarea{
+    width:100%;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px 12px;
+    font-family:var(--font);
+    font-size:14px;
+    color:var(--ink);
+    resize:vertical;
+  }
+  textarea{min-height:90px;}
+  input:focus, textarea:focus{outline:2px solid var(--sky);outline-offset:1px;border-color:var(--sky);}
+
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media (max-width:600px){.row2{grid-template-columns:1fr;}}
+
+  button.primary{
+    margin-top:16px;
+    background:var(--orange);
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    padding:11px 20px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    font-family:var(--font);
+  }
+  button.primary:hover{filter:brightness(1.06);}
+  button.primary:disabled{background:#C9B6A9;cursor:not-allowed;}
+  button.ghost{
+    margin-top:16px;
+    margin-left:10px;
+    background:transparent;
+    border:1px solid var(--line);
+    color:var(--muted);
+    border-radius:8px;
+    padding:11px 16px;
+    font-size:13.5px;
+    cursor:pointer;
+    font-family:var(--font);
+  }
+  .status{font-size:13px;color:var(--sky);margin-top:10px;display:none;}
+  .status.show{display:block;}
+
+  .output{
+    margin-top:18px;
+    background:#F9FBFC;
+    border:1px solid var(--line);
+    border-left:4px solid var(--sky);
+    border-radius:8px;
+    padding:16px 18px;
+    font-size:14px;
+    line-height:1.55;
+  }
+  .output h3{font-size:13px;text-transform:uppercase;letter-spacing:.3px;color:var(--navy);margin:14px 0 6px;}
+  .output h3:first-child{margin-top:0;}
+  .output ul{margin:4px 0 10px;padding-left:20px;}
+  .output li{margin-bottom:4px;}
+  .output.verdict-good{border-left-color:var(--green);}
+  .output.verdict-warn{border-left-color:var(--orange);}
+  .output li.sig-good{color:#256d18;font-weight:600;}
+  .output li.sig-good::marker{color:var(--green);}
+  .output li.sig-gap{color:#a83232;font-weight:600;}
+  .output li.sig-gap::marker{color:#C0392B;}
+
+  .match-badge{
+    display:inline-block;font-size:15px;font-weight:700;border-radius:8px;
+    padding:8px 16px;margin-bottom:14px;
+  }
+  .match-badge.match-good{background:#EAF6E4;color:#256d18;}
+  .match-badge.match-warn{background:#FFF1E3;color:#8A5320;}
+  .match-badge.match-bad{background:#FCEAEA;color:#a83232;}
+
+  .copybar{display:flex;justify-content:flex-end;margin-top:8px;}
+  .copybar button{
+    background:none;border:1px solid var(--line);color:var(--muted);
+    font-size:12px;padding:6px 12px;border-radius:6px;cursor:pointer;font-family:var(--font);
+  }
+  .copybar button:hover{border-color:var(--sky);color:var(--sky);}
+
+  .sidebar{position:sticky;top:20px;}
+  .side-card{
+    background:#fff;border:1px solid var(--line);border-radius:14px;
+    padding:18px;margin-bottom:16px;
+  }
+  .side-card h3{margin:0 0 4px;font-size:14px;color:var(--navy);}
+  .side-card .hint{font-size:12px;color:var(--muted);margin-bottom:10px;}
+  .pattern-item{
+    font-size:12.5px;border-left:2px solid var(--sky);padding:6px 0 6px 10px;margin-bottom:8px;color:#2B4A63;
+  }
+  .pattern-item .d{color:var(--muted);font-size:10.5px;display:block;}
+  .empty-note{font-size:12.5px;color:var(--muted);font-style:italic;}
+
+  .cand-item{
+    display:flex;justify-content:space-between;align-items:center;gap:8px;
+    padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer;
+  }
+  .cand-item:last-child{border-bottom:none;}
+  .cand-item:hover .cand-name{color:var(--sky);}
+  .cand-name{font-size:13px;font-weight:600;color:var(--navy);}
+  .cand-sub{font-size:11px;color:var(--muted);}
+  .status-pill{
+    font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.2px;
+    padding:3px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0;
+  }
+  .status-1{background:#FFF1E3;color:var(--orange);}
+  .status-2{background:#E7F5FC;color:var(--sky);}
+  .status-3{background:#EAF6E4;color:var(--green);}
+
+  .note-box{
+    background:#FFF7ED;border:1px solid #F1D9BE;color:#8A5320;
+    font-size:12px;border-radius:8px;padding:10px 12px;margin-bottom:16px;line-height:1.5;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="masthead">
+    <div>
+      <h1><span class="brand-dot"></span>Prep Buddy</h1>
+      <p>Client-aware candidate prep, from research call to debrief — and it remembers.</p>
+    </div>
+    <div class="memory-badge">
+      <div class="num" id="memoryCount">0</div>
+      <div class="lbl">debriefs learned</div>
+    </div>
+  </div>
+
+  <div class="note-box" id="privacyNote">
+    Candidate profiles (JD, resume, transcripts, sign-off) are saved privately to your own login — only you see them in "Resume a candidate." Client interview patterns in the sidebar below are shared with everyone using this link, so the team learns together.
+  </div>
+
+  <div class="layout">
+    <div class="main">
+
+      <!-- STAGE 1 -->
+      <div class="stage" id="stage1">
+        <div class="stage-head">
+          <div class="stage-num">1</div>
+          <div><h2>Prep the CSM</h2><span>Client, job description, resume — get the briefing you'll run the call from</span></div>
+        </div>
+        <div class="stage-body">
+          <label for="clientName">Client name</label>
+          <input type="text" id="clientName" placeholder="e.g. Rubrik">
+
+          <div class="row2">
+            <div>
+              <label for="jd">Job description</label>
+              <textarea id="jd" placeholder="Paste the JD here"></textarea>
+            </div>
+            <div>
+              <label for="resume">Candidate resume</label>
+              <textarea id="resume" placeholder="Paste the candidate's resume here"></textarea>
+            </div>
+          </div>
+
+          <label for="pastNotes">Additional notes (optional)</label>
+          <textarea id="pastNotes" placeholder="Anything else worth knowing — prior rejections, must-avoid history, etc." style="min-height:60px;"></textarea>
+
+          <label for="candidateLocation">Candidate location (optional — for commute comparison if role isn't remote)</label>
+          <input type="text" id="candidateLocation" placeholder="e.g. Fremont, CA">
+          <input type="hidden" id="candidateName">
+
+          <div>
+            <button class="primary" id="btnStage1">Generate prep briefing</button>
+          </div>
+          <div class="status" id="status1">Researching the client's interview style and drafting the briefing…</div>
+          <div id="candNameChip" style="display:none;font-size:12.5px;color:var(--muted);margin-top:8px;">
+            Prepping for <strong id="candNameText"></strong> · <a href="#" id="fixCandName" style="color:var(--sky);">not right?</a>
+          </div>
+          <div class="output" id="output1" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- STAGE 2 -->
+      <div class="stage locked" id="stage2">
+        <div class="stage-head">
+          <div class="stage-num">2</div>
+          <div><h2>Prep the candidate</h2><span>Paste the prep call transcript — get the message you send the candidate</span></div>
+        </div>
+        <div class="stage-body">
+          <div class="row2">
+            <div>
+              <label for="interviewDateTime">Interview date & time (optional)</label>
+              <input type="text" id="interviewDateTime" placeholder="e.g. 7/9/2026 11:00 AM PT">
+            </div>
+            <div>
+              <label for="interviewerInfo">Interviewer name(s) / LinkedIn (optional)</label>
+              <input type="text" id="interviewerInfo" placeholder="e.g. Laphillia Andrews - linkedin.com/in/...">
+            </div>
+          </div>
+          <label for="meetingLink">Meeting link (optional)</label>
+          <input type="text" id="meetingLink" placeholder="Teams / Zoom link">
+
+          <label for="prepTranscript">Prep call transcript</label>
+          <textarea id="prepTranscript" placeholder="Paste the transcript or notes from your prep call with the candidate" style="min-height:120px;"></textarea>
+
+          <label for="mySignoff">Your sign-off (saved for next time, only visible to you)</label>
+          <textarea id="mySignoff" placeholder="e.g.&#10;Warm Regards,&#10;Sayyed&#10;Manager, Client Services&#10;Ph: 209-645-2792 | E: sayyedm@aditiconsulting.com" style="min-height:80px;"></textarea>
+
+          <div>
+            <button class="primary" id="btnStage2">Generate candidate-ready tips</button>
+          </div>
+          <div class="status" id="status2">Turning the call into tips the candidate can actually use…</div>
+          <div class="output" id="output2" style="display:none;"></div>
+          <div class="copybar" id="copybar2" style="display:none;"><button id="copyBtn2">Copy for candidate</button></div>
+          <div id="revise2Box" style="display:none;margin-top:14px;">
+            <label for="revise2Input">Ask Prep Buddy to fix something</label>
+            <input type="text" id="revise2Input" placeholder="e.g. make it shorter, drop question 3, fix a typo in the second bullet">
+            <button class="primary" id="btnRevise2" style="padding:9px 16px;font-size:13px;">Apply edit</button>
+            <div class="status" id="status2b">Applying your edit…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STAGE 3 -->
+      <div class="stage locked" id="stage3">
+        <div class="stage-head">
+          <div class="stage-num">3</div>
+          <div><h2>Debrief the interview</h2><span>Paste the post-interview debrief — get the verdict, and teach Prep Buddy the client's pattern</span></div>
+        </div>
+        <div class="stage-body">
+          <label for="debriefTranscript">Post-interview debrief transcript</label>
+          <textarea id="debriefTranscript" placeholder="Paste the transcript or notes from your post-interview debrief call" style="min-height:120px;"></textarea>
+          <div>
+            <button class="primary" id="btnStage3">Generate debrief notes</button>
+            <button class="ghost" id="btnReset">Start next candidate</button>
+          </div>
+          <div class="status" id="status3">Mapping the debrief against the JD and resume…</div>
+          <div class="output" id="output3" style="display:none;"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="sidebar">
+      <div class="side-card">
+        <h3>Resume a candidate</h3>
+        <div class="hint">Only visible to you — candidates you've started</div>
+        <div id="candidateList"><div class="empty-note">No candidates saved yet.</div></div>
+      </div>
+      <div class="side-card">
+        <h3 id="intelClientName">Client intelligence</h3>
+        <div class="hint">What Prep Buddy has learned so far for this client</div>
+        <div id="intelList"><div class="empty-note">Type a client name in Stage 1 to see what's known.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let currentClientSlug = null;
+let currentCandidateId = null;
+let stage1Text = "", stage2Text = "", stage3Text = "";
+
+function slugify(name){
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'unknown';
+}
+
+function candidateId(client, candidate){
+  return slugify(client) + '-' + slugify(candidate);
+}
+
+// Mock storage for local development
+const mockStorage = {};
+window.storage = {
+  set: async (key, value, shared) => {
+    mockStorage[key] = value;
+    return { success: true };
+  },
+  get: async (key, shared) => {
+    return mockStorage.hasOwnProperty(key) ? { value: mockStorage[key] } : null;
+  }
+};
+
+async function saveMySignoff(text){
+  try{ await window.storage.set('my-signoff', text, false); }catch(e){ console.error('Could not save sign-off', e); }
+}
+async function loadMySignoff(){
+  try{
+    const result = await window.storage.get('my-signoff', false);
+    if(result && result.value) $('mySignoff').value = result.value;
+  }catch(e){ /* nothing saved yet */ }
+}
+
+const STATUS_LABELS = {
+  'awaiting-prep-call': { text: 'Awaiting prep call', cls: 'status-1' },
+  'awaiting-debrief':   { text: 'Awaiting debrief',   cls: 'status-2' },
+  'completed':          { text: 'Completed',          cls: 'status-3' }
+};
+
+async function loadCandidateIndex(){
+  try{
+    const result = await window.storage.get('candidate-index', false);
+    if(result && result.value) return JSON.parse(result.value);
+  }catch(e){ /* no candidates saved yet */ }
+  return [];
+}
+
+function renderCandidateList(list){
+  const el = $('candidateList');
+  if(!list || list.length === 0){
+    el.innerHTML = '<div class="empty-note">No candidates saved yet.</div>';
+    return;
+  }
+  const sorted = list.slice().sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+  el.innerHTML = sorted.map(c => {
+    const s = STATUS_LABELS[c.status] || { text: c.status, cls: 'status-1' };
+    return `<div class="cand-item" data-id="${c.id}">
+      <div><div class="cand-name">${c.candidateName}</div><div class="cand-sub">${c.clientName} · ${c.updatedAt}</div></div>
+      <div class="status-pill ${s.cls}">${s.text}</div>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.cand-item').forEach(item => {
+    item.addEventListener('click', () => loadCandidateProfile(item.dataset.id));
+  });
+}
+
+async function saveCandidateProfile(status){
+  const client = $('clientName').value.trim();
+  const candidate = $('candidateName').value.trim();
+  if(!client || !candidate) return;
+  const id = candidateId(client, candidate);
+  currentCandidateId = id;
+
+  const profile = {
+    id, clientName: client, candidateName: candidate,
+    jd: $('jd').value.trim(),
+    resume: $('resume').value.trim(),
+    pastNotes: $('pastNotes').value.trim(),
+    candidateLocation: $('candidateLocation').value.trim(),
+    prepTranscript: $('prepTranscript').value.trim(),
+    debriefTranscript: $('debriefTranscript').value.trim(),
+    interviewDateTime: $('interviewDateTime').value.trim(),
+    interviewerInfo: $('interviewerInfo').value.trim(),
+    meetingLink: $('meetingLink').value.trim(),
+    stage1Text, stage2Text, stage3Text,
+    status,
+    updatedAt: new Date().toISOString().slice(0,16).replace('T',' ')
+  };
+
+  try{
+    await window.storage.set(`candidate:${id}`, JSON.stringify(profile), false);
+    const index = await loadCandidateIndex();
+    const existing = index.findIndex(c => c.id === id);
+    const summary = { id, clientName: client, candidateName: candidate, status, updatedAt: profile.updatedAt };
+    if(existing >= 0) index[existing] = summary; else index.push(summary);
+    await window.storage.set('candidate-index', JSON.stringify(index), false);
+    renderCandidateList(index);
+  }catch(e){ console.error('Could not save candidate profile', e); }
+}
+
+async function loadCandidateProfile(id){
+  try{
+    const result = await window.storage.get(`candidate:${id}`, false);
+    if(!result || !result.value) return;
+    const p = JSON.parse(result.value);
+
+    $('candidateName').value = p.candidateName || '';
+    $('candNameText').textContent = p.candidateName || '';
+    $('candNameChip').style.display = p.candidateName ? 'block' : 'none';
+    $('clientName').value = p.clientName || '';
+    $('jd').value = p.jd || '';
+    $('resume').value = p.resume || '';
+    $('pastNotes').value = p.pastNotes || '';
+    $('candidateLocation').value = p.candidateLocation || '';
+    $('prepTranscript').value = p.prepTranscript || '';
+    $('debriefTranscript').value = p.debriefTranscript || '';
+    $('interviewDateTime').value = p.interviewDateTime || '';
+    $('interviewerInfo').value = p.interviewerInfo || '';
+    $('meetingLink').value = p.meetingLink || '';
+    stage1Text = p.stage1Text || '';
+    stage2Text = p.stage2Text || '';
+    stage3Text = p.stage3Text || '';
+    currentCandidateId = id;
+
+    ['stage2','stage3'].forEach(s => $(s).classList.add('locked'));
+    ['stage1','stage2','stage3'].forEach(s => $(s).classList.remove('done'));
+    $('output1').style.display='none'; $('output1').innerHTML='';
+    $('output2').style.display='none'; $('output2').innerHTML='';
+    $('copybar2').style.display='none';
+    $('output3').style.display='none'; $('output3').innerHTML=''; $('output3').className='output';
+
+    if(stage1Text){
+      let body1 = stage1Text, badge1 = '';
+      const sm = stage1Text.match(/Match Score:\s*(\d+)%/i);
+      if(sm){
+        const score = parseInt(sm[1], 10);
+        const cls = score >= 75 ? 'match-good' : (score >= 50 ? 'match-warn' : 'match-bad');
+        badge1 = `<div class="match-badge ${cls}">Match Score: ${score}%</div>`;
+        body1 = body1.replace(/Match Score:\s*\d+%\s*/i, '');
+      }
+      $('output1').style.display='block'; $('output1').innerHTML = badge1 + mdToHtml(body1);
+      $('stage1').classList.add('done'); $('stage2').classList.remove('locked');
+    }
+    if(stage2Text){
+      $('output2').style.display='block'; $('output2').innerHTML = mdToHtml(stage2Text);
+      $('copybar2').style.display='flex';
+      $('revise2Box').style.display='block';
+      $('stage2').classList.add('done'); $('stage3').classList.remove('locked');
+    }
+    if(stage3Text){
+      $('output3').style.display='block'; $('output3').innerHTML = mdToHtml(stage3Text);
+      $('stage3').classList.add('done');
+    }
+
+    await loadClientIntel(p.clientName);
+    window.scrollTo({top:0, behavior:'smooth'});
+  }catch(e){ console.error('Could not load candidate profile', e); }
+}
+
+function mdToHtml(md){
+  const lines = md.split('\n');
+  let html = '', inList = false;
+  for(let raw of lines){
+    let line = raw.trim();
+    if(!line){ if(inList){html+='</ul>';inList=false;} continue; }
+    if(line.startsWith('## ')){
+      if(inList){html+='</ul>';inList=false;}
+      html += `<h3>${line.slice(3)}</h3>`;
+      continue;
+    }
+    if(line.startsWith('- ') || line.startsWith('* ')){
+      if(!inList){html+='<ul>';inList=true;}
+      let item = line.slice(2);
+      let cls = '';
+      if(/^GOOD:\s*/.test(item)){ cls=' class="sig-good"'; item = item.replace(/^GOOD:\s*/,''); }
+      else if(/^(GAP|FLAG):\s*/.test(item)){ cls=' class="sig-gap"'; item = item.replace(/^(GAP|FLAG):\s*/,''); }
+      html += `<li${cls}>${boldify(item)}</li>`;
+      continue;
+    }
+    if(inList){html+='</ul>';inList=false;}
+    html += `<p>${boldify(line)}</p>`;
+  }
+  if(inList) html += '</ul>';
+  return html;
+}
+function boldify(t){ return t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>'); }
+
+async function callClaude(system, userText, useWebSearch){
+  const body = {
+    model: "claude-sonnet-4-6",
+    max_tokens: 1000,
+    system: system,
+    messages: [{ role: "user", content: userText }]
+  };
+  if(useWebSearch){
+    body.tools = [{ type: "web_search_20250305", name: "web_search" }];
+  }
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+  if(!data.content) throw new Error("No response content");
+  return data.content.map(b => b.type === "text" ? b.text : "").filter(Boolean).join("\n");
+}
+
+async function loadClientIntel(name){
+  const slug = slugify(name);
+  currentClientSlug = slug;
+  $('intelClientName').textContent = name ? `Client intelligence — ${name}` : 'Client intelligence';
+  try{
+    const result = await window.storage.get(`client-intel:${slug}`, true);
+    if(result && result.value){
+      const data = JSON.parse(result.value);
+      renderIntel(data);
+      return data;
+    }
+  }catch(e){ /* key doesn't exist yet */ }
+  renderIntel(null);
+  return null;
+}
+
+function renderIntel(data){
+  const list = $('intelList');
+  const count = data && data.patterns ? data.patterns.length : 0;
+  $('memoryCount').textContent = count;
+  if(!data || !data.patterns || data.patterns.length === 0){
+    list.innerHTML = '<div class="empty-note">No debriefs logged yet for this client — the first one starts the pattern.</div>';
+    return;
+  }
+  list.innerHTML = data.patterns.slice().reverse().map(p =>
+    `<div class="pattern-item"><span class="d">${p.date}</span>${p.note}</div>`
+  ).join('');
+}
+
+async function saveClientIntel(name, note){
+  const slug = slugify(name);
+  let data = { clientName: name, patterns: [] };
+  try{
+    const result = await window.storage.get(`client-intel:${slug}`, true);
+    if(result && result.value) data = JSON.parse(result.value);
+  }catch(e){ /* first entry for this client */ }
+  data.patterns.push({ date: new Date().toISOString().slice(0,10), note });
+  try{
+    await window.storage.set(`client-intel:${slug}`, JSON.stringify(data), true);
+  }catch(e){ console.error("Could not save client intelligence", e); }
+  renderIntel(data);
+}
+
+function setStatus(el, on){ el.classList.toggle('show', on); }
+function unlockStage(el){ el.classList.remove('locked'); el.classList.add('done'); }
+
+$('clientName').addEventListener('blur', () => {
+  const name = $('clientName').value.trim();
+  if(name) loadClientIntel(name);
+});
+
+$('btnStage1').addEventListener('click', async () => {
+  const client = $('clientName').value.trim();
+  const jd = $('jd').value.trim();
+  const resume = $('resume').value.trim();
+  const notes = $('pastNotes').value.trim();
+  const candidateLocation = $('candidateLocation').value.trim();
+  if(!client || !jd || !resume){
+    alert('Fill in client name, job description, and resume first.');
+    return;
+  }
+  const intel = await loadClientIntel(client);
+  const knownPatterns = intel && intel.patterns.length
+    ? intel.patterns.map(p => `- (${p.date}) ${p.note}`).join('\n')
+    : 'None logged yet.';
+
+  const btn = $('btnStage1');
+  btn.disabled = true;
+  setStatus($('status1'), true);
+
+  const system = `You are an expert job match evaluator supporting a CSM (Client Services Manager), not the candidate. Use web search for the client's company/project context, its known interview style and questions, and (if a candidate location is given and the role isn't remote) a rough commute comparison. Combine that with the job description, resume, and any client patterns already logged. Your reply must start with exactly one line: "Candidate Name: <full name from the resume>" (best guess if unclear), then a blank line, then this structure with ## headers and - bullets only, no extra commentary:
+## Job Summary
+One plain-language paragraph explaining the role for someone with corporate but not deep technical background. Follow with one line: "Project Context: ..." giving a small idea of what the actual project/work is, from search if useful.
+## Role Snapshot
+- Top 3 hard/technical skills required
+- Location and work mode (remote / hybrid / onsite) — read this from the job description
+- Commute comparison to candidate's location if role is not remote and a location was given, else omit this bullet
+- Any red flags about the role itself, each prefixed "FLAG:" (omit this bullet if there are none)
+## Candidate Fit
+The first line under this header must be exactly: Match Score: NN% (your best estimate).
+Then one short paragraph on why they're a fit.
+Then bullets: key matches each prefixed "GOOD:", key gaps or weaknesses each prefixed "GAP:".
+## Prep Call Talking Points
+Up to 10 concise, candidate-ready bullets — no internal jargon, safe to read aloud on the call.
+## Technical Questions to Expect
+15 short bullets, based on the client's real interview style where known.
+## Behavioral & Culture Fit Questions to Expect
+10 short bullets.
+## Suggested Pay Rate
+One line: a USD/hour range (low–high) for this role and experience level in the current US market, one line of reasoning.
+Keep every bullet short — a handful of words, not sentences. No em dashes anywhere.`;
+
+  const userText = `Client: ${client}
+Known client patterns so far:
+${knownPatterns}
+
+Job description:
+${jd}
+
+Candidate resume:
+${resume}
+
+Candidate location: ${candidateLocation || 'Not provided'}
+
+Additional notes:
+${notes || 'None'}`;
+
+  try{
+    const rawFull = await callClaude(system, userText, true);
+    const nameMatch = rawFull.match(/^Candidate Name:\s*(.+)$/m);
+    const extractedName = nameMatch ? nameMatch[1].trim() : 'Candidate';
+    $('candidateName').value = extractedName;
+    $('candNameText').textContent = extractedName;
+    $('candNameChip').style.display = 'block';
+
+    const raw = rawFull.replace(/^Candidate Name:.*\n+/, '');
+    stage1Text = raw;
+    let body = raw;
+    let badgeHtml = '';
+    const scoreMatch = raw.match(/Match Score:\s*(\d+)%/i);
+    if(scoreMatch){
+      const score = parseInt(scoreMatch[1], 10);
+      const cls = score >= 75 ? 'match-good' : (score >= 50 ? 'match-warn' : 'match-bad');
+      badgeHtml = `<div class="match-badge ${cls}">Match Score: ${score}%</div>`;
+      body = body.replace(/Match Score:\s*\d+%\s*/i, '');
+    }
+    $('output1').style.display = 'block';
+    $('output1').innerHTML = badgeHtml + mdToHtml(body);
+    unlockStage($('stage1'));
+    $('stage2').classList.remove('locked');
+    await saveCandidateProfile('awaiting-prep-call');
+  }catch(e){
+    $('output1').style.display = 'block';
+    $('output1').innerHTML = '<p>Something went wrong generating the briefing. Try again.</p>';
+    console.error(e);
+  }finally{
+    btn.disabled = false;
+    setStatus($('status1'), false);
+  }
+});
+
+$('fixCandName').addEventListener('click', async (ev) => {
+  ev.preventDefault();
+  const corrected = prompt('Candidate name:', $('candidateName').value);
+  if(corrected && corrected.trim()){
+    $('candidateName').value = corrected.trim();
+    $('candNameText').textContent = corrected.trim();
+    if(stage1Text) await saveCandidateProfile($('stage3').classList.contains('done') ? 'completed' : ($('stage2').classList.contains('done') ? 'awaiting-debrief' : 'awaiting-prep-call'));
+  }
+});
+
+$('btnStage2').addEventListener('click', async () => {
+  const transcript = $('prepTranscript').value.trim();
+  if(!transcript){ alert('Paste the prep call transcript first.'); return; }
+
+  const btn = $('btnStage2');
+  btn.disabled = true;
+  setStatus($('status2'), true);
+
+  const system = `You are Prep Buddy. Using the prep briefing already prepared, the job description, resume, and the transcript of the actual prep call, write the body of a candidate-facing prep email. Warm, encouraging, plain language, no internal jargon, no recruiter-only content. Follow this exact structure with ## headers and - bullets:
+## Using the STAR Technique
+A short 4-5 step explainer of the STAR method (Situation, Task, Action, Result) for answering behavioral questions, written for the candidate.
+## What to Expect in the Interview
+2-4 bullets on the role and what the interview will focus on, based on the JD.
+## Sample Interview Questions
+A mix of technical and behavioral questions actually relevant to this role, refined by what came up in the prep call.
+## Questions You Could Ask
+2-4 good questions the candidate could ask the interviewer.
+Do NOT include a greeting, interview logistics (date/time/link), or a sign-off — those are added separately. Do NOT invent an interview date, company details, or contact information.`;
+
+  const userText = `Prep briefing (internal):
+${stage1Text}
+
+Job description:
+${$('jd').value.trim()}
+
+Candidate resume:
+${$('resume').value.trim()}
+
+Prep call transcript:
+${transcript}`;
+
+  try{
+    const bodyResult = await callClaude(system, userText, false);
+    const candidateNameVal = $('candidateName').value.trim();
+    const dateTime = $('interviewDateTime').value.trim();
+    const interviewer = $('interviewerInfo').value.trim();
+    const link = $('meetingLink').value.trim();
+    const signoff = $('mySignoff').value.trim();
+
+    let header = `Hello ${candidateNameVal || 'there'},\n\nCongratulations on the interview, and thank you for your time! Please review the details below.\n`;
+    if(dateTime || interviewer || link){
+      header += `\n## Interview Details\n`;
+      if(dateTime) header += `- Date & time: ${dateTime}\n`;
+      if(interviewer) header += `- Interviewer: ${interviewer}\n`;
+      if(link) header += `- Meeting link: ${link}\n`;
+    }
+
+    let footer = '';
+    if(signoff) footer = `\n\n${signoff}`;
+
+    const result = header + '\n' + bodyResult + footer;
+    stage2Text = result;
+    $('output2').style.display = 'block';
+    $('output2').innerHTML = mdToHtml(result);
+    $('copybar2').style.display = 'flex';
+    $('revise2Box').style.display = 'block';
+    unlockStage($('stage2'));
+    $('stage3').classList.remove('locked');
+    if(signoff) saveMySignoff(signoff);
+    await saveCandidateProfile('awaiting-debrief');
+  }catch(e){
+    $('output2').style.display = 'block';
+    $('output2').innerHTML = '<p>Something went wrong generating candidate tips. Try again.</p>';
+    console.error(e);
+  }finally{
+    btn.disabled = false;
+    setStatus($('status2'), false);
+  }
+});
+
+$('copyBtn2').addEventListener('click', () => {
+  navigator.clipboard.writeText(stage2Text).then(() => {
+    $('copyBtn2').textContent = 'Copied';
+    setTimeout(() => $('copyBtn2').textContent = 'Copy for candidate', 1500);
+  });
+});
+
+$('btnRevise2').addEventListener('click', async () => {
+  const instruction = $('revise2Input').value.trim();
+  if(!instruction){ alert('Type what you\'d like changed first.'); return; }
+  const btn = $('btnRevise2');
+  btn.disabled = true;
+  setStatus($('status2b'), true);
+
+  const system = `You are editing a candidate-facing prep email that a CSM already drafted. Apply ONLY the requested change. Keep everything else, including the greeting, the ## headers, the interview details, and the sign-off, exactly as they are unless the instruction says otherwise. Return the complete revised email as plain text, nothing else, no commentary before or after.`;
+  const userText = `Current email:\n${stage2Text}\n\nRequested edit:\n${instruction}`;
+
+  try{
+    const revised = await callClaude(system, userText, false);
+    stage2Text = revised;
+    $('output2').innerHTML = mdToHtml(revised);
+    $('revise2Input').value = '';
+    await saveCandidateProfile($('stage3').classList.contains('done') ? 'completed' : 'awaiting-debrief');
+  }catch(e){
+    alert('Something went wrong applying that edit. Try again.');
+    console.error(e);
+  }finally{
+    btn.disabled = false;
+    setStatus($('status2b'), false);
+  }
+});
+
+$('btnStage3').addEventListener('click', async () => {
+  const transcript = $('debriefTranscript').value.trim();
+  if(!transcript){ alert('Paste the post-interview debrief transcript first.'); return; }
+
+  const btn = $('btnStage3');
+  btn.disabled = true;
+  setStatus($('status3'), true);
+
+  const system = `You are Prep Buddy. Using the prep briefing, job description, resume, and this post-interview debrief transcript, produce internal recruiter notes. Reply in this exact structure using ## headers and - bullets:
+## What Was Covered
+## Interviewer Style Observed
+## Strengths Noted
+## Concerns Or Gaps
+## Recruiter Verdict
+## Client Pattern Update
+The "Client Pattern Update" section must be 1-3 short bullets capturing a reusable, durable insight about this client or interviewer's interview style — written so it's still useful for a different candidate months from now. Keep every section tight, bullets only.`;
+
+  const userText = `Prep briefing (internal):
+${stage1Text}
+
+Job description:
+${$('jd').value.trim()}
+
+Candidate resume:
+${$('resume').value.trim()}
+
+Post-interview debrief transcript:
+${transcript}`;
+
+  try{
+    const result = await callClaude(system, userText, false);
+    stage3Text = result;
+    $('output3').style.display = 'block';
+    const lower = result.toLowerCase();
+    let verdictClass = '';
+    if(lower.includes('strong fit') || lower.includes('recommend') && !lower.includes('not recommend')) verdictClass='verdict-good';
+    if(lower.includes('concern') || lower.includes('not recommend') || lower.includes('risk')) verdictClass='verdict-warn';
+    $('output3').className = 'output ' + verdictClass;
+    $('output3').innerHTML = mdToHtml(result);
+    unlockStage($('stage3'));
+
+    const patMatch = result.match(/## Client Pattern Update\s*([\s\S]*?)(?:\n##|$)/i);
+    const patternNote = patMatch ? patMatch[1].trim().replace(/\n+/g,' ') : null;
+    const client = $('clientName').value.trim();
+    if(patternNote && client){
+      await saveClientIntel(client, patternNote);
+    }
+    await saveCandidateProfile('completed');
+  }catch(e){
+    $('output3').style.display = 'block';
+    $('output3').innerHTML = '<p>Something went wrong generating debrief notes. Try again.</p>';
+    console.error(e);
+  }finally{
+    btn.disabled = false;
+    setStatus($('status3'), false);
+  }
+});
+
+$('btnReset').addEventListener('click', () => {
+  ['candidateName','clientName','jd','resume','pastNotes','candidateLocation','prepTranscript','debriefTranscript','interviewDateTime','interviewerInfo','meetingLink'].forEach(id => $(id).value = '');
+  ['output1','output2','output3'].forEach(id => { $(id).style.display='none'; $(id).innerHTML=''; });
+  $('copybar2').style.display = 'none';
+  $('revise2Box').style.display = 'none';
+  $('stage2').classList.add('locked');
+  $('stage3').classList.add('locked');
+  $('stage1').classList.remove('done');
+  $('stage2').classList.remove('done');
+  $('stage3').classList.remove('done');
+  stage1Text = stage2Text = stage3Text = "";
+  currentCandidateId = null;
+  $('candNameChip').style.display = 'none';
+  $('candNameText').textContent = '';
+  $('intelClientName').textContent = 'Client intelligence';
+  $('intelList').innerHTML = '<div class="empty-note">Type a client name in Stage 1 to see what\'s known.</div>';
+  window.scrollTo({top:0, behavior:'smooth'});
+});
+
+loadCandidateIndex().then(renderCandidateList);
+loadMySignoff();
+</script>
+</body>
+</html>
